@@ -2,7 +2,7 @@
 
 An expression-based esoteric programming language that works with REPL.
 
-Just a little note, I'm ~~dumb~~ a beginner when it comes to making a programming language and stuffs, this project may not even be considered as programming language. Also, I just started using rust like few months ago, so the code quality may be bad. I'm working to make this improve and learn :D . I hope you'll like this project.
+Just a little note, I'm ~~dumb~~ a beginner when it comes to making a programming language and stuffs, this project may not even be considered as programming language. Also, I just started using rust like few months ago, so the code quality may be bad. I'm working to make this improve and learn :D I love exploring. I hope you'll like this project.
 
 ## Installation
 
