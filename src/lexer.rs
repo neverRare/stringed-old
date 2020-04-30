@@ -11,7 +11,7 @@ pub enum Token<'a> {
     CloseBracket,
 }
 impl<'a> Token<'a> {
-    pub fn describe(&self) -> &'static str {
+    pub fn describe(&self) -> &str {
         use Token::*;
         match self {
             Input => "_",
@@ -27,7 +27,7 @@ impl<'a> Token<'a> {
     }
 }
 // perhaps this could an iterator instead, or maybe not
-pub fn lex(src: &str) -> Result<Vec<Token>, &'static str> {
+pub fn lex(src: &str) -> Result<Vec<Token>, &str> {
     let mut vec = Vec::new();
     let mut inside_str = false;
     let mut is_escaping = false;
