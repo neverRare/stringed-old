@@ -63,7 +63,8 @@ pub fn lex(src: &str) -> Result<Vec<Token>, &str> {
             _ => continue,
         };
         vec.push(token);
-    }    if inside_str {
+    }
+    if inside_str {
         Err("unterminated string")
     } else {
         Ok(vec)
