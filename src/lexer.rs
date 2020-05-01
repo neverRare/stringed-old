@@ -60,10 +60,12 @@ pub fn lex(src: &str) -> Result<Vec<Token>, &str> {
             ")" => Token::CloseParen,
             "[" => Token::OpenBracket,
             "]" => Token::CloseBracket,
-            _ => continue,
+            " " | "\t" | "\n" | "\r" => continue,
+            _ => return Err("unidentified token"),
         };
         vec.push(token);
-    }    if inside_str {
+    }
+    if inside_str {
         Err("unterminated string")
     } else {
         Ok(vec)
