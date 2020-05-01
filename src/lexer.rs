@@ -60,7 +60,8 @@ pub fn lex(src: &str) -> Result<Vec<Token>, &str> {
             ")" => Token::CloseParen,
             "[" => Token::OpenBracket,
             "]" => Token::CloseBracket,
-            _ => continue,
+            " " | "\t" | "\n" | "\r" => continue,
+            _ => return Err("unidentified token"),
         };
         vec.push(token);
     }
