@@ -18,22 +18,35 @@ pub struct FullExpr<'a> {
     token_count: usize,
     pub have_input: bool,
 }
+fn get_optional_delimited_expr<'a>(
+    tokens: &[Token<'a>],
+    assert_start: &Token,
+    end: &Token,
+) -> Result<Option<FullExpr<'a>>, String> {
+    assert_eq!(&tokens[0], assert_start);
+    let rest = &tokens[1..];
+    if rest.is_empty() {
+        Err(expect(end.describe(), "EOF"))
+    } else if &rest[0] == end {
+        Ok(None)
+    } else {
+        let operand = get_expr(rest)?;
+        let last_token = &tokens[operand.token_count + 1];
+        if last_token == end {
+            Ok(Some(operand))
+        } else {
+            Err(expect(end.describe(), last_token.describe()))
+        }
+    }
+}
 fn get_delimited_expr<'a>(
     tokens: &[Token<'a>],
     assert_start: &Token,
     end: &Token,
 ) -> Result<FullExpr<'a>, String> {
-    assert_eq!(tokens[0], *assert_start);
-    let operand = get_expr(&tokens[1..])?;
-    if tokens.len() < operand.token_count {
-        Err(expect(end.describe(), "EOF"))
-    } else {
-        let last_token = &tokens[operand.token_count + 1];
-        if last_token == end {
-            Ok(operand)
-        } else {
-            Err(expect(end.describe(), last_token.describe()))
-        }
+    match get_optional_delimited_expr(tokens, assert_start, end)? {
+        Some(expr) => Ok(expr),
+        None => Err(expect("expression", end.describe())),
     }
 }
 fn get_single_expr<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
