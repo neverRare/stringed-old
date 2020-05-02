@@ -114,7 +114,7 @@ fn get_slice<'a>(
 ) -> Result<FullExpr<'a>, String> {
     let lower_expr = get_optional_delimited_expr(rest_tokens, &Token::OpenBracket, &Token::Colon)?;
     let upper_rest_tokens = match &lower_expr {
-        Some(full_expr) => &rest_tokens[full_expr.token_count..],
+        Some(full_expr) => &rest_tokens[full_expr.token_count + 1..],
         None => &rest_tokens[1..],
     };
     let upper_expr =
