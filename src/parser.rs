@@ -18,20 +18,35 @@ pub struct FullExpr<'a> {
     token_count: usize,
     pub have_input: bool,
 }
-fn get_from_group<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
-    assert_eq!(tokens[0], Token::OpenParen);
-    let operand = get_expr(&tokens[1..])?;
-    if tokens.len() < operand.token_count {
-        Err(expect("`)`", "EOF"))
+fn get_optional_delimited_expr<'a>(
+    tokens: &[Token<'a>],
+    assert_start: &Token,
+    end: &Token,
+) -> Result<Option<FullExpr<'a>>, String> {
+    assert_eq!(&tokens[0], assert_start);
+    let rest = &tokens[1..];
+    if rest.is_empty() {
+        Err(expect(end.describe(), "EOF"))
+    } else if &rest[0] == end {
+        Ok(None)
     } else {
-        match &tokens[operand.token_count + 1] {
-            Token::CloseParen => Ok(FullExpr {
-                expr: Expr::Group(Box::new(operand.expr)),
-                token_count: operand.token_count + 2,
-                have_input: operand.have_input,
-            }),
-            token => Err(expect("`)`", token.describe())),
+        let operand = get_expr(rest)?;
+        let last_token = &tokens[operand.token_count + 1];
+        if last_token == end {
+            Ok(Some(operand))
+        } else {
+            Err(expect(end.describe(), last_token.describe()))
         }
+    }
+}
+fn get_delimited_expr<'a>(
+    tokens: &[Token<'a>],
+    assert_start: &Token,
+    end: &Token,
+) -> Result<FullExpr<'a>, String> {
+    match get_optional_delimited_expr(tokens, assert_start, end)? {
+        Some(expr) => Ok(expr),
+        None => Err(expect("expression", end.describe())),
     }
 }
 fn get_single_expr<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
@@ -54,7 +69,14 @@ fn get_single_expr<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
                 have_input: full_expr.have_input,
             })
         }
-        Token::OpenParen => get_from_group(tokens),
+        Token::OpenParen => {
+            let full_expr = get_delimited_expr(tokens, &Token::OpenParen, &Token::CloseParen)?;
+            Ok(FullExpr {
+                token_count: full_expr.token_count + 2,
+                have_input: full_expr.have_input,
+                expr: Expr::Group(Box::new(full_expr.expr)),
+            })
+        }
         token => Err(expect("expression", token.describe())),
     }
 }
@@ -86,51 +108,17 @@ fn get_expr_from<'a>(
         }
     }
 }
-// TODO: clean this mess
 fn get_slice<'a>(
     last_expr: FullExpr<'a>,
     rest_tokens: &[Token<'a>],
 ) -> Result<FullExpr<'a>, String> {
-    assert_eq!(rest_tokens[0], Token::OpenBracket);
-    let lower_rest_tokens = &rest_tokens[1..];
-    let lower_expr = if lower_rest_tokens.is_empty() {
-        return Err(expect("expression or :", "EOF"));
-    } else if let Token::Colon = lower_rest_tokens[0] {
-        None
-    } else {
-        Some(get_expr(lower_rest_tokens)?)
-    };
+    let lower_expr = get_optional_delimited_expr(rest_tokens, &Token::OpenBracket, &Token::Colon)?;
     let upper_rest_tokens = match &lower_expr {
-        Some(full_expr) => {
-            let rest_tokens = &lower_rest_tokens[full_expr.token_count..];
-            if rest_tokens.is_empty() {
-                return Err(expect(":", "EOF"));
-            }
-            match &rest_tokens[0] {
-                Token::Colon => &rest_tokens[1..],
-                token => return Err(expect(":", token.describe())),
-            }
-        }
-        None => &lower_rest_tokens[1..],
+        Some(full_expr) => &rest_tokens[full_expr.token_count + 1..],
+        None => &rest_tokens[1..],
     };
-    let upper_expr = if upper_rest_tokens.is_empty() {
-        return Err(expect("expression or `]`", "EOF"));
-    } else if let Token::CloseBracket = upper_rest_tokens[0] {
-        None
-    } else {
-        Some(get_expr(upper_rest_tokens)?)
-    };
-    if let Some(full_expr) = &upper_expr {
-        let rest_tokens = &upper_rest_tokens[full_expr.token_count..];
-        if rest_tokens.is_empty() {
-            return Err(expect("]", "EOF"));
-        }
-        let next_token = &rest_tokens[0];
-        if let Token::CloseBracket = next_token {
-        } else {
-            return Err(expect("]", next_token.describe()));
-        }
-    }
+    let upper_expr =
+        get_optional_delimited_expr(upper_rest_tokens, &Token::Colon, &Token::CloseBracket)?;
     Ok(FullExpr {
         have_input: last_expr.have_input
             || match &lower_expr {
@@ -175,4 +163,5 @@ pub fn parse(src: &str) -> Result<FullExpr, String> {
         } else {
             Err(format!("unexpected {}", token[expr.token_count].describe()))
         }
-    }}
+    }
+}
