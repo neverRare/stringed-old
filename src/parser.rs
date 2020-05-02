@@ -30,11 +30,7 @@ fn get_delimited_expr<'a>(
     } else {
         let last_token = &tokens[operand.token_count + 1];
         if last_token == end {
-            Ok(FullExpr {
-                expr: Expr::Group(Box::new(operand.expr)),
-                token_count: operand.token_count + 2,
-                have_input: operand.have_input,
-            })
+            Ok(operand)
         } else {
             Err(expect(end.describe(), last_token.describe()))
         }
@@ -60,7 +56,14 @@ fn get_single_expr<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
                 have_input: full_expr.have_input,
             })
         }
-        Token::OpenParen => get_delimited_expr(tokens, &Token::OpenParen, &Token::CloseParen),
+        Token::OpenParen => {
+            let full_expr = get_delimited_expr(tokens, &Token::OpenParen, &Token::CloseParen)?;
+            Ok(FullExpr {
+                token_count: full_expr.token_count + 2,
+                have_input: full_expr.have_input,
+                expr: Expr::Group(Box::new(full_expr.expr)),
+            })
+        }
         token => Err(expect("expression", token.describe())),
     }
 }
