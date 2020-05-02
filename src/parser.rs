@@ -40,22 +40,6 @@ fn get_delimited_expr<'a>(
         }
     }
 }
-fn get_from_group<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
-    assert_eq!(tokens[0], Token::OpenParen);
-    let operand = get_expr(&tokens[1..])?;
-    if tokens.len() < operand.token_count {
-        Err(expect("`)`", "EOF"))
-    } else {
-        match &tokens[operand.token_count + 1] {
-            Token::CloseParen => Ok(FullExpr {
-                expr: Expr::Group(Box::new(operand.expr)),
-                token_count: operand.token_count + 2,
-                have_input: operand.have_input,
-            }),
-            token => Err(expect("`)`", token.describe())),
-        }
-    }
-}
 fn get_single_expr<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
     match &tokens[0] {
         Token::Input => Ok(FullExpr {
@@ -76,7 +60,7 @@ fn get_single_expr<'a>(tokens: &[Token<'a>]) -> Result<FullExpr<'a>, String> {
                 have_input: full_expr.have_input,
             })
         }
-        Token::OpenParen => get_from_group(tokens),
+        Token::OpenParen => get_delimited_expr(tokens, &Token::OpenParen, &Token::CloseParen),
         token => Err(expect("expression", token.describe())),
     }
 }
