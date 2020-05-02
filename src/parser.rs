@@ -108,51 +108,17 @@ fn get_expr_from<'a>(
         }
     }
 }
-// TODO: clean this mess
 fn get_slice<'a>(
     last_expr: FullExpr<'a>,
     rest_tokens: &[Token<'a>],
 ) -> Result<FullExpr<'a>, String> {
-    assert_eq!(rest_tokens[0], Token::OpenBracket);
-    let lower_rest_tokens = &rest_tokens[1..];
-    let lower_expr = if lower_rest_tokens.is_empty() {
-        return Err(expect("expression or :", "EOF"));
-    } else if let Token::Colon = lower_rest_tokens[0] {
-        None
-    } else {
-        Some(get_expr(lower_rest_tokens)?)
-    };
+    let lower_expr = get_optional_delimited_expr(rest_tokens, &Token::OpenBracket, &Token::Colon)?;
     let upper_rest_tokens = match &lower_expr {
-        Some(full_expr) => {
-            let rest_tokens = &lower_rest_tokens[full_expr.token_count..];
-            if rest_tokens.is_empty() {
-                return Err(expect(":", "EOF"));
-            }
-            match &rest_tokens[0] {
-                Token::Colon => &rest_tokens[1..],
-                token => return Err(expect(":", token.describe())),
-            }
-        }
-        None => &lower_rest_tokens[1..],
+        Some(full_expr) => &rest_tokens[full_expr.token_count..],
+        None => &rest_tokens[1..],
     };
-    let upper_expr = if upper_rest_tokens.is_empty() {
-        return Err(expect("expression or `]`", "EOF"));
-    } else if let Token::CloseBracket = upper_rest_tokens[0] {
-        None
-    } else {
-        Some(get_expr(upper_rest_tokens)?)
-    };
-    if let Some(full_expr) = &upper_expr {
-        let rest_tokens = &upper_rest_tokens[full_expr.token_count..];
-        if rest_tokens.is_empty() {
-            return Err(expect("]", "EOF"));
-        }
-        let next_token = &rest_tokens[0];
-        if let Token::CloseBracket = next_token {
-        } else {
-            return Err(expect("]", next_token.describe()));
-        }
-    }
+    let upper_expr =
+        get_optional_delimited_expr(upper_rest_tokens, &Token::Colon, &Token::CloseBracket)?;
     Ok(FullExpr {
         have_input: last_expr.have_input
             || match &lower_expr {
