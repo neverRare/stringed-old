@@ -1,6 +1,6 @@
 # Stringed
 
-**Note:** This project has been archived in favor of the newer [stringed](https://github.com/neverRare/stringed).
+**Note:** This project has been archived in favor of the [newer stringed](https://github.com/neverRare/stringed).
 
 ---
 
